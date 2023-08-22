@@ -1,0 +1,66 @@
+function populateDropdown() {
+  var formId = 'Form ID'; //Form ID
+  var sheetId = 'Sheet ID'; //Sheet ID
+  var formQuestionNumber = 2; // Updated question number to 2
+  var sheetHeadingName = 'Store Name'; //Column Heading
+  var sheetName = 'Active Stores'; //Sheet Name
+
+  var form = FormApp.openById(formId);
+  var sheet = SpreadsheetApp.openById(sheetId).getSheetByName(sheetName);
+  var dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1);
+  var values = dataRange.getValues().map(function(row) {
+    return row[0];
+  });
+  var formItems = form.getItems();
+  var formItem;
+
+  // Find the form item with the specified title
+  for (var i = 0; i < formItems.length; i++) {
+    if (formItems[i].getTitle() === sheetHeadingName) {
+      formItem = formItems[i].asListItem();
+      break;
+    }
+  }
+
+  if (formItem) {
+    var existingChoices = formItem.getChoices();
+    var existingValues = existingChoices.map(function(choice) {
+      return choice.getValue();
+    });
+
+    var newChoices = [];
+    var removedChoices = [];
+
+    // Find new choices
+    for (var i = 0; i < values.length; i++) {
+      var value = values[i];
+      if (existingValues.indexOf(value) === -1) {
+        newChoices.push(formItem.createChoice(value));
+      }
+    }
+
+    // Find removed choices
+    for (var i = 0; i < existingValues.length; i++) {
+      var value = existingValues[i];
+      if (values.indexOf(value) === -1) {
+        removedChoices.push(value);
+      }
+    }
+
+    // Remove choices from form item
+    if (removedChoices.length > 0) {
+      var updatedChoices = existingChoices.filter(function(choice) {
+        return removedChoices.indexOf(choice.getValue()) === -1;
+      });
+      formItem.setChoices(updatedChoices);
+    }
+
+    // Add new choices to form item
+    if (newChoices.length > 0) {
+      formItem.createChoice('Select an option...'); // Optional: Add a default choice
+      formItem.setChoices(existingChoices.concat(newChoices));
+    }
+  } else {
+    Logger.log('Form question with the specified title was not found.');
+  }
+}
